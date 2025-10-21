@@ -7,4 +7,10 @@ openai==1.3.0
 python-dotenv==1.0.0
 pydantic==2.4.2
 typing-extensions==4.8.0
+
+# Additional dependencies for video processing
+# Note: ffmpeg must be installed separately on your system
+# macOS: brew install ffmpeg
+# Ubuntu: sudo apt-get install ffmpeg
+# Windows: Download from ffmpeg.org
 pyyaml==6.0.2

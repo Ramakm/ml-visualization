@@ -79,14 +79,7 @@ class VisualMapper:
                 visual_elements.extend(visuals)
             
             # Add camera movements based on scene type
-            for end_pos in [(1, 2, 3), (4, 5, 6)]:
-                distance = math.sqrt(sum(x*x for x in end_pos)),
-                camera_movements.append(CameraMovement(
-                    start_position=(0, 0, 0),
-                    end_position=end_pos,
-                    duration=distance,
-                    easing="linear"
-                ))
+            camera_movements = self._plan_camera_movements(scene, visual_elements)
             
             visual_scene = {
                 "name": scene.name,

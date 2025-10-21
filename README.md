@@ -23,13 +23,25 @@ Text input → ConceptParser → Scene Planner → Visual Mapper → Code Genera
 - 🤖 **AI-Powered Quality Control**: Iterative improvement based on educational criteria
 - 🔧 **Extensible**: Easy to add new ML concepts beyond PCA
 - 📊 **Comprehensive Analysis**: Detailed reports on animation quality and suggestions
+- 🎬 **Automatic Rendering**: Renders all scenes with Manim automatically
+- 🎞️ **Video Concatenation**: Combines all scenes into a single final video
 
 ## Quick Start
 
 ### Installation
 
 ```bash
+# Install Python dependencies
 pip install -r requirements.txt
+
+# Install ffmpeg (required for video concatenation)
+# macOS:
+brew install ffmpeg
+
+# Ubuntu/Debian:
+sudo apt-get install ffmpeg
+
+# Windows: Download from https://ffmpeg.org
 ```
 
 ### Run Demo
@@ -57,6 +69,8 @@ result = pipeline.generate_visualization(
 
 The pipeline generates:
 - **Manim code**: Executable Python files for animation
+- **Rendered videos**: Individual scene animations in MP4 format
+- **Final video**: Single concatenated video with all scenes
 - **Analysis reports**: Detailed feedback on educational effectiveness
 - **Scene breakdowns**: Structured visualization plans
 
@@ -124,3 +138,25 @@ To add support for new ML concepts:
 ## License
 
 MIT License - see LICENSE file for details.
+
+---
+
+## Recent Updates
+
+**v1.2.0 - Automatic Rendering & Video Concatenation (Oct 21, 2025)**
+- ✅ Added automatic rendering of all scenes with Manim
+- ✅ Implemented video concatenation using ffmpeg
+- ✅ Single final output video combining all scenes
+- ✅ Graceful fallback when dependencies are missing
+
+**v1.1.0 - Fixed Indentation Issues (Oct 21, 2025)**
+- ✅ Fixed code generator indentation errors
+- ✅ Improved textwrap usage for clean Manim code
+- ✅ Enhanced numpy compatibility
+- ✅ All generated code now properly formatted and runnable
+
+See [FIXES_APPLIED.md](FIXES_APPLIED.md) for detailed changelog.
+
+---
+
+Built by: [Ramakrushna Mohapatra](https://x.com/techwith_ram)

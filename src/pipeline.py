@@ -3,6 +3,8 @@ Main Pipeline: Orchestrates the complete visualization generation process.
 """
 from typing import List, Dict, Any, Optional
 import os
+import subprocess
+import shutil
 from pathlib import Path
 
 from concept_parser import ConceptParser, parse_pca_concept
@@ -111,6 +113,18 @@ class VisualizationPipeline:
         
         print(f"📋 Analysis report saved to: {report_file}")
         
+        # Step 7: Render all scenes
+        print("🎬 Step 7: Rendering scenes with Manim...")
+        rendered_videos = self._render_scenes(output_file, topic)
+        
+        # Step 8: Concatenate videos
+        final_video = None
+        if rendered_videos:
+            print("🎞️  Step 8: Concatenating videos into final output...")
+            final_video = self._concatenate_videos(rendered_videos, topic)
+            if final_video:
+                print(f"✅ Final video saved to: {final_video}")
+        
         # Return results
         result = {
             "concepts": self.current_concepts,
@@ -120,7 +134,9 @@ class VisualizationPipeline:
             "analyses": scene_analyses,
             "output_files": {
                 "code": str(output_file),
-                "report": str(report_file)
+                "report": str(report_file),
+                "final_video": str(final_video) if final_video else None,
+                "scene_videos": [str(v) for v in rendered_videos] if rendered_videos else []
             },
             "pipeline_success": all_approved
         }
@@ -224,6 +240,116 @@ class VisualizationPipeline:
         report += f"```\n"
         
         return report
+    
+    def _render_scenes(self, code_file: Path, topic: str) -> List[Path]:
+        """Render all scenes using Manim."""
+        rendered_videos = []
+        
+        # Check if manim is available
+        try:
+            subprocess.run(["manim", "--version"], capture_output=True, check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("   ⚠️  Manim not found. Skipping rendering.")
+            print("   Install with: pip install manim")
+            return []
+        
+        # Get all scene class names
+        scene_classes = []
+        for scene_visual in self.current_visuals:
+            class_name = ''.join(word.capitalize() for word in scene_visual["name"].split('_'))
+            scene_classes.append(class_name)
+        
+        # Render each scene
+        for i, class_name in enumerate(scene_classes):
+            print(f"   Rendering scene {i+1}/{len(scene_classes)}: {class_name}...")
+            try:
+                # Run manim render command
+                result = subprocess.run(
+                    ["manim", "-ql", "--media_dir", str(self.output_dir / "media"), 
+                     str(code_file), class_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=120  # 2 minute timeout per scene
+                )
+                
+                if result.returncode == 0:
+                    # Find the rendered video file
+                    media_dir = self.output_dir / "media" / "videos" / code_file.stem / "480p15"
+                    if media_dir.exists():
+                        video_files = list(media_dir.glob(f"*{class_name}*.mp4"))
+                        if video_files:
+                            rendered_videos.append(video_files[0])
+                            print(f"   ✅ Rendered: {video_files[0].name}")
+                        else:
+                            print(f"   ⚠️  Video file not found for {class_name}")
+                    else:
+                        print(f"   ⚠️  Media directory not found")
+                else:
+                    print(f"   ❌ Rendering failed for {class_name}")
+                    if "ModuleNotFoundError" in result.stderr:
+                        print(f"   Missing dependency. Install: pip install scikit-learn")
+                    
+            except subprocess.TimeoutExpired:
+                print(f"   ⏱️  Timeout rendering {class_name}")
+            except Exception as e:
+                print(f"   ❌ Error rendering {class_name}: {e}")
+        
+        return rendered_videos
+    
+    def _concatenate_videos(self, video_files: List[Path], topic: str) -> Optional[Path]:
+        """Concatenate multiple videos into one final video."""
+        if not video_files:
+            return None
+        
+        if len(video_files) == 1:
+            # Only one video, just copy it
+            final_path = self.output_dir / f"{topic}_final.mp4"
+            shutil.copy(video_files[0], final_path)
+            return final_path
+        
+        # Check if ffmpeg is available
+        try:
+            subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("   ⚠️  ffmpeg not found. Cannot concatenate videos.")
+            print("   Install ffmpeg to enable video concatenation")
+            print("   Individual scene videos are still available")
+            return None
+        
+        # Create concat file list
+        concat_file = self.output_dir / "concat_list.txt"
+        with open(concat_file, 'w') as f:
+            for video_file in video_files:
+                f.write(f"file '{video_file.absolute()}'\n")
+        
+        # Output file
+        final_video = self.output_dir / f"{topic}_final.mp4"
+        
+        try:
+            # Run ffmpeg concatenation
+            print(f"   Concatenating {len(video_files)} videos...")
+            result = subprocess.run(
+                ["ffmpeg", "-f", "concat", "-safe", "0", "-i", str(concat_file),
+                 "-c", "copy", "-y", str(final_video)],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            if result.returncode == 0:
+                # Clean up concat file
+                concat_file.unlink()
+                return final_video
+            else:
+                print(f"   ⚠️  Concatenation failed")
+                return None
+                
+        except subprocess.TimeoutExpired:
+            print(f"   ⏱️  Timeout during concatenation")
+            return None
+        except Exception as e:
+            print(f"   ❌ Error concatenating videos: {e}")
+            return None
     
     def quick_demo(self, demo_text: str = None) -> Dict[str, Any]:
         """Run a quick demo of the pipeline."""

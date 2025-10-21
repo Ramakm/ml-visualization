@@ -3,6 +3,7 @@ Code Generator: Converts visual representations to executable Manim code.
 """
 from typing import List, Dict, Any, Optional
 import textwrap
+import math
 from visual_mapper import VisualElement, VisualElementType
 
 
@@ -91,7 +92,7 @@ class ManimeCodeGenerator:
     
     def _generate_data_setup(self) -> str:
         """Generate data setup code."""
-        code = textwrap.indent("""
+        code = textwrap.dedent("""
         # Generate sample data for PCA demonstration
         rng = np.random.RandomState(42)
         n_samples = 50
@@ -107,8 +108,8 @@ class ManimeCodeGenerator:
         self.components = self.pca.components_
         self.explained_variance = self.pca.explained_variance_
         
-        """, "        ")
-        return code
+        """)
+        return textwrap.indent(code, "        ")
     
     def _generate_element_code(self, element: VisualElement) -> str:
         """Generate code for a visual element."""
@@ -137,19 +138,19 @@ class ManimeCodeGenerator:
             color = self._get_manim_color(element.properties.get("color", "#95a5a6"))
             size = element.properties.get("size", 0.1)
             
-            code = textwrap.indent(f"""
+            code = f"""
         # Data point {element.element_id}
         {element.element_id} = Sphere(radius={size}).move_to([{x:.2f}, {y:.2f}, {z:.2f}])
         {element.element_id}.set_color({color})
         {element.element_id}.set_opacity({element.properties.get("opacity", 1.0)})
         
-        """, "        ")
+"""
         else:
             # Collection of data points
             color = self._get_manim_color(element.properties.get("color", "#95a5a6"))
             size = element.properties.get("size", 0.1)
             
-            code = textwrap.indent(f"""
+            code = f"""
         # Create data points
         self.data_points = VGroup()
         for i, point in enumerate(self.data_3d):
@@ -158,7 +159,7 @@ class ManimeCodeGenerator:
             sphere.set_opacity({element.properties.get("opacity", 0.8)})
             self.data_points.add(sphere)
         
-        """, "        ")
+"""
         
         return code
     
@@ -169,7 +170,7 @@ class ManimeCodeGenerator:
         length = element.properties.get("length", 2.0)
         thickness = element.properties.get("thickness", 0.05)
         
-        code = textwrap.indent(f"""
+        code = f"""
         # {element.element_id}
         {element.element_id} = Arrow3D(
             start=ORIGIN,
@@ -178,7 +179,7 @@ class ManimeCodeGenerator:
             thickness={thickness}
         )
         
-        """, "        ")
+"""
         
         return code
     
@@ -189,14 +190,14 @@ class ManimeCodeGenerator:
         height = element.properties.get("height", 3)
         opacity = element.properties.get("opacity", 0.3)
         
-        code = textwrap.indent(f"""
+        code = f"""
         # {element.element_id}
         {element.element_id} = Rectangle(width={width}, height={height})
         {element.element_id}.set_fill({color}, opacity={opacity})
         {element.element_id}.set_stroke({color}, width=2)
         {element.element_id}.move_to([{element.position[0]}, {element.position[1]}, {element.position[2]}])
         
-        """, "        ")
+"""
         
         return code
     
@@ -207,14 +208,14 @@ class ManimeCodeGenerator:
         height = element.properties.get("height", 1)
         opacity = element.properties.get("opacity", 0.3)
         
-        code = textwrap.indent(f"""
+        code = f"""
         # {element.element_id}
         {element.element_id} = Ellipse(width={width}, height={height})
         {element.element_id}.set_fill({color}, opacity={opacity})
         {element.element_id}.set_stroke({color}, width=2)
         {element.element_id}.rotate({element.properties.get("rotation", 0)} * DEGREES)
         
-        """, "        ")
+"""
         
         return code
     
@@ -223,7 +224,7 @@ class ManimeCodeGenerator:
         color = self._get_manim_color(element.properties.get("color", "#95a5a6"))
         thickness = element.properties.get("thickness", 0.02)
         
-        code = textwrap.indent(f"""
+        code = f"""
         # {element.element_id} - projection line
         if hasattr(self, 'data_points') and len(self.data_points) > {element.element_id.split('_')[-1] if element.element_id.split('_')[-1].isdigit() else '0'}:
             point_3d = self.data_3d[{element.element_id.split('_')[-1] if element.element_id.split('_')[-1].isdigit() else '0'}]
@@ -236,7 +237,7 @@ class ManimeCodeGenerator:
             )
             {element.element_id}.set_opacity({element.properties.get("opacity", 0.5)})
         
-        """, "        ")
+"""
         
         return code
     
@@ -246,23 +247,23 @@ class ManimeCodeGenerator:
         color = self._get_manim_color(element.properties.get("color", "#ecf0f1"))
         size = element.properties.get("size", 0.5)
         
-        code = textwrap.indent(f"""
+        code = f"""
         # {element.element_id}
         {element.element_id} = Text("{text}", font_size={size * 48})
         {element.element_id}.set_color({color})
         {element.element_id}.move_to([{element.position[0]}, {element.position[1]}, {element.position[2]}])
         
-        """, "        ")
+"""
         
         return code
     
     def _generate_animation_sequence(self, elements: List[VisualElement]) -> str:
         """Generate animation sequence for all elements."""
-        code = textwrap.indent("""
+        code = """
         # Animation sequence
         animations = []
         
-        """, "        ")
+"""
         
         # Group animations by timing
         animation_groups = {}
@@ -277,7 +278,7 @@ class ManimeCodeGenerator:
         # Generate animations in order
         for delay in sorted(animation_groups.keys()):
             if delay > 0:
-                code += textwrap.indent(f"        self.wait({delay})\n", "        ")
+                code += f"        self.wait({delay})\n"
             
             animations = animation_groups[delay]
             anim_code = "        self.play(\n"
@@ -301,22 +302,23 @@ class ManimeCodeGenerator:
             anim_code += f"            run_time={duration}\n"
             anim_code += "        )\n\n"
             
-            code += textwrap.indent(anim_code, "        ")
+            code += anim_code
         
         return code
     
     def _generate_camera_movements(self, movements: List[Dict[str, Any]]) -> str:
         """Generate camera movement code."""
-        code = textwrap.indent("""
+        code = """
         # Camera movements
-        """, "        ")
+        
+"""
         
         for i, movement in enumerate(movements):
-            start_pos = movement["start_position"]
-            end_pos = movement["end_position"]
-            duration = movement["duration"]
+            start_pos = movement.start_position
+            end_pos = movement.end_position
+            duration = movement.duration
             
-            code += textwrap.indent(f"""
+            code += f"""
         self.move_camera(
             phi={60 * 3.14159 / 180},
             theta={45 * 3.14159 / 180},
@@ -324,7 +326,7 @@ class ManimeCodeGenerator:
             run_time={duration}
         )
         
-        """, "        ")
+"""
         
         return code
     

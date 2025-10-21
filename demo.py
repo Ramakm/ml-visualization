@@ -74,10 +74,17 @@ def demo_pca_explanation():
     
     print(f"\n📁 Output Files:")
     for file_type, file_path in result['output_files'].items():
-        print(f"   • {file_type}: {file_path}")
+        if file_type == 'scene_videos' and file_path:
+            print(f"   • {file_type}: {len(file_path)} videos")
+        elif file_path:
+            print(f"   • {file_type}: {file_path}")
     
     success = "✅ SUCCESS" if result['pipeline_success'] else "⚠️ NEEDS IMPROVEMENT"
     print(f"\n🎯 Pipeline Status: {success}")
+    
+    if result['output_files'].get('final_video'):
+        print(f"\n🎥 Final Video: {result['output_files']['final_video']}")
+        print(f"   Watch your complete PCA explanation animation!")
     
     return result
 
